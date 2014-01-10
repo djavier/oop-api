@@ -12,7 +12,7 @@ require 'debugger'
 require 'haml'
 
 #requiring model classes
-['hero','job', 'race','weapon'].each do |file|
+['hero','job', 'race','weapon', 'mascot', 'clan'].each do |file|
   require File.join(File.dirname(__FILE__), 'lib', "#{file}.rb")
 end
 
@@ -46,7 +46,11 @@ DataMapper.auto_migrate!
 Job.create(name: 'Paladin')
 Race.create(name: 'Human')
 Weapon.create(name: 'Mithril Hammer', desc: "The almighty Thor Hammer, gives +10 to all stats")
-Hero.create(name: 'Thor', weapon_id: 1, job_id: 1, race_id: 1)
+Weapon.create(name: 'Blade of Olympus', desc: "The powerful Zeus' sword, gives +20 to strength and +10 to shield")
+Mascot.create(name:'Night Fury', desc:"Highly intelligent breed of dragon evolved for speed and stealth")
+Clan.create(name:"The Wolsitozurs", desc:"Just Don't", mascot_id:1)
+Hero.create(name: 'Thor', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
+Hero.create(name: 'Perseus', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
 
 get '/' do
   haml :index
