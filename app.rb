@@ -1,4 +1,4 @@
-#ENV['RACK_ENV'] = 'test'
+ENV['RACK_ENV'] = 'test'
 # encoding: UTF-8
 require 'rubygems'
 require 'sinatra'
@@ -24,26 +24,24 @@ require_relative 'helpers/json_helper.rb'
 #setting helper
 helpers JsonHelpers
 
-configure :development, :test do
-  register ::Sinatra::Namespace
-  set :protection, true
-  # Allows local requests such as Postman (Chrome extension):
-  set :protection, origin_whitelist: ["chrome-extension://fdmmgilgnpjigdojojpjoooidkmcomcm", "http://127.0.0.1"]
-  set :protect_from_csrf, true
-  set :server, :puma
-  # Local SQlite Locally (Development):
-  DataMapper.setup(:default, "sqlite://#{File.expand_path(File.dirname(__FILE__))}/db/db.sqlite3")
-end
-
-configure :production do 
+configure :development, :test, :production do
   register ::Sinatra::Namespace
   set :protection, true
   set :protect_from_csrf, true
   set :server, :puma
-# Live Postgres for Heroku (Production):
-  DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_AMBER_URL'] || 'postgres://localhost/mydb')
-end
 
+  if production?
+    # Live Postgres for Heroku (Production):
+    DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_AMBER_URL'] || 'postgres://localhost/mydb')
+  else
+    # Allows local requests such as Postman (Chrome extension):
+    set :protection, origin_whitelist: ["chrome-extension://fdmmgilgnpjigdojojpjoooidkmcomcm", "http://127.0.0.1"]
+
+    # Local SQlite Locally (Development):
+    DataMapper.setup(:default, "sqlite://#{File.expand_path(File.dirname(__FILE__))}/db/db.sqlite3")
+  end
+
+end
 
 DataMapper.finalize
 DataMapper.auto_migrate!
@@ -304,6 +302,6 @@ end
       body "The job with an id of #{job.id} doesn't exist or is related to a hero and can't be deleted."
     end
   end
-    
+
 end
 
