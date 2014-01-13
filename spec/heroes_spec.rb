@@ -29,6 +29,11 @@ describe "See a hero" do
     get "/api/v1/heroes/1"
     last_response.status.must_equal 200
   end
+
+  it "responds with 404 to non-existent hero" do
+    get "/api/v1/heroes/999"
+    last_response.status.must_equal 404
+  end 
 end
 
 describe "Create a hero" do

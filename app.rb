@@ -87,6 +87,28 @@ before do
   end
  
 end
+  
+  get '/clans' do
+    clans = Clan.all
+    clans.to_json
+  end
+
+  get '/clans/:id' do
+    clan = Clan.get(params[:id])
+    if clan.nil?
+      halt 404
+    end
+    clan.to_json
+  end
+
+   get '/clans/:id/heroes' do
+    clan = Clan.get(params[:id])
+    if clan.nil?
+      halt 404
+    end
+    clan.heroes.to_json
+  end
+
 
   # Index
   get '/heroes' do
