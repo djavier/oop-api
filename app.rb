@@ -5,10 +5,12 @@ require 'sinatra'
 require 'json'
 require 'data_mapper'
 require 'puma'
-require 'sinatra'
 require "sinatra/namespace"
 require "sinatra/base"
-require 'debugger'
+if development? || test?
+  require "sinatra/reloader" 
+  require 'debugger' 
+end
 require 'haml'
 
 #requiring model classes
@@ -25,19 +27,23 @@ helpers JsonHelpers
 configure :development, :test, :production do
   register ::Sinatra::Namespace
   set :protection, true
-  # Allows local requests such as Postman (Chrome extension):
-  set :protection, origin_whitelist: ["chrome-extension://fdmmgilgnpjigdojojpjoooidkmcomcm", "http://127.0.0.1"]
   set :protect_from_csrf, true
   set :server, :puma
-  # Local Sqlite (Development):
-  # set :datamapper_url, "sqlite3://#{File.dirname(__FILE__)}/test.sqlite3"
-end
 
-# Live Postgres for Heroku (Production):
-#DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_AMBER_URL'] || 'postgres://localhost/mydb')
-# Local SQlite Locally (Development):
- #DataMapper.setup(:default, "sqlite::memory:")
- DataMapper.setup(:default, "sqlite://#{File.expand_path(File.dirname(__FILE__))}/db.sqlite")
+  if production?
+    # Live Postgres for Heroku (Production):
+    DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_AMBER_URL'] || 'postgres://localhost/mydb')
+  else
+    # Allows local requests such as Postman (Chrome extension):
+    set :protection, origin_whitelist: ["chrome-extension://fdmmgilgnpjigdojojpjoooidkmcomcm", "http://127.0.0.1"]
+
+    db_directory =  "#{File.expand_path(File.dirname(__FILE__))}/db"
+    Dir::mkdir(directory) unless File.exists?(db_directory)
+    # Local SQlite Locally (Development):
+    DataMapper.setup(:default, "sqlite://"+db_directory+"/db.sqlite3")
+  end
+
+end
 
 DataMapper.finalize
 DataMapper.auto_migrate!
@@ -52,6 +58,9 @@ Clan.create(name:"The Wolsitozurs", desc:"Just Don't", mascot_id:1)
 Hero.create(name: 'Thor', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
 Hero.create(name: 'Perseus', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
 
+
+
+
 get '/' do
   haml :index
 end
@@ -62,6 +71,22 @@ end
 
 # Namespacing the API for version one.
 namespace '/api/v1' do
+
+before do
+  content_type :json
+
+  headers["X-CSRF-Token"] = session[:csrf] ||= SecureRandom.hex(32)
+   # To allow Cross Domain XHR
+  headers["Access-Control-Allow-Origin"] ||= request.env["HTTP_ORIGIN"] 
+  headers['Access-Control-Allow-Headers'] = %w{Origin Accept Content-Type X-Requested-With X-CSRF-Token}.join(',')
+
+  #Enable preflight request to allow http request for PUT and DELETE methods
+  if request.request_method == 'OPTIONS'
+    response.headers["Access-Control-Allow-Methods"] = "POST, PUT, DELETE"
+    halt 200
+  end
+ 
+end
 
   # Index
   get '/heroes' do
@@ -93,13 +118,12 @@ namespace '/api/v1' do
     hero.to_json
   end
 
-  #update
+  # Update
   put '/heroes/:id' do
     data = parsed_body
     hero ||= Hero.get(params[:id]) || halt(404)
     halt 500 unless hero.update(
       name: data['name'],
-      desc: data['desc'],
       weapon_id: data['weapon_id'],
       job_id: data['job_id'], 
       race_id: data['race_id']
@@ -165,7 +189,7 @@ namespace '/api/v1' do
     weapon.to_json
   end
 
-  #delete
+  # Delete
   delete '/weapons/:id' do
     weapon ||= Weapon.get(params[:id]) || halt(404)
     halt 404 if weapon.nil?
@@ -185,7 +209,7 @@ namespace '/api/v1' do
     races.to_json
   end
 
-  # show
+  # Show
   get '/races/:id' do
     race = Race.get(params[:id])
     if race.nil?
@@ -194,7 +218,7 @@ namespace '/api/v1' do
     race.to_json
   end
 
-  #Create
+  # Create
   post '/races' do
     data = parsed_body
 
@@ -208,7 +232,7 @@ namespace '/api/v1' do
     [201, {'Location' => "/race/#{race.id}"}, race.to_json]
   end
 
-  #Update
+  # Update
   put '/races/:id' do
     data = parsed_body
     race ||= Race.get(params[:id]) || halt(404)
@@ -239,7 +263,7 @@ namespace '/api/v1' do
     jobs.to_json
   end
 
-  #S how
+  # Show
   get '/jobs/:id' do
     job = Job.get(params[:id])
     if job.nil?
@@ -285,20 +309,5 @@ namespace '/api/v1' do
     end
   end
 
-  before do
-    content_type :json
-
-    headers["X-CSRF-Token"] = session[:csrf] ||= SecureRandom.hex(32)
-     # To allow Cross Domain XHR
-    headers["Access-Control-Allow-Origin"] ||= request.env["HTTP_ORIGIN"] 
-    headers['Access-Control-Allow-Headers'] = %w{Origin Accept Content-Type X-Requested-With X-CSRF-Token}.join(',')
-
-    #Enable preflight request to allow http request for PUT and DELETE methods
-    if request.request_method == 'OPTIONS'
-      response.headers["Access-Control-Allow-Methods"] = "POST, PUT, DELETE"
-      halt 200
-    end
-
-   
-  end
 end
+

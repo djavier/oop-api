@@ -52,11 +52,13 @@ end
 
 describe "Edit a hero" do
   before do
-    @hero = Hero.new(name: "Zeus")
+    @hero = Hero.new(name: "Zeus",weapon_id: 1, job_id: 1, race_id: 1)
   end
 
   it "check if the hero has been updated accordingly" do
     put_data = put "/api/v1/heroes/1", @hero.to_json
+    put_data.status.must_equal 200
+    
     resp = JSON.parse(put_data.body)
     resp["name"].must_equal "Zeus"
   end
