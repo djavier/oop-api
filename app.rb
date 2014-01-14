@@ -1,4 +1,4 @@
-ENV['RACK_ENV'] = 'test'
+#ENV['RACK_ENV'] = 'test'
 # encoding: UTF-8
 require 'rubygems'
 require 'sinatra'
