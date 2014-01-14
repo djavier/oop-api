@@ -53,6 +53,16 @@ describe "Create a hero" do
     resp["race_id"].must_equal 1
     resp["job_id"].must_equal 1
   end
+
+  it "must reject it when enlisting to a FULL clan" do
+    data =nil
+    (1..5).each do |i|
+      h = Hero.new(name:i.to_s, weapon_id:1, job_id:1, race_id:1, clan_id:1)
+      data = post "/api/v1/heroes", h.to_json          
+      end
+    data.status.must_equal 500  
+    data.body.must_include "is not longer looking for heroes."
+  end
 end
 
 describe "Edit a hero" do

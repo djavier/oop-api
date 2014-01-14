@@ -54,7 +54,7 @@ Race.create(name: 'Human')
 Weapon.create(name: 'Mithril Hammer', desc: "The almighty Thor Hammer, gives +10 to all stats")
 Weapon.create(name: 'Blade of Olympus', desc: "The powerful Zeus' sword, gives +20 to strength and +10 to shield")
 Mascot.create(name:'Night Fury', desc:"Highly intelligent breed of dragon evolved for speed and stealth")
-Clan.create(name:"The Wolsitozurs", desc:"Just Don't", mascot_id:1)
+Clan.create(name:"The Wolsitozurs", desc:"Just Don't", mascot_id:1, mascot_name:"Wolsy")
 Hero.create(name: 'Thor', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
 Hero.create(name: 'Perseus', weapon_id: 1, job_id: 1, race_id: 1, clan_id: 1 )
 
@@ -109,6 +109,70 @@ end
     clan.heroes.to_json
   end
 
+  post '/clans' do 
+    data = parsed_body
+    if data.nil? || data['name'].nil?
+      halt 400
+    end
+
+    clan = Clan.new(name: data['name'], desc: data['desc'], mascot_id: data['mascot_id'], mascot_name: data['mascot_name'])
+
+    halt 500 unless clan.save
+    status 201
+    clan.to_json
+  end
+
+  put '/clans/:id' do
+    data = parsed_body
+
+    clan ||= Clan.get(params[:id]) || halt(404)
+    
+    halt 400 if data['name'].nil?
+    halt 500 unless clan.update(
+      name: data['name'],
+      desc: data['desc'],
+      mascot_id: data['mascot_id'],
+      mascot_name: data['mascot_name']
+      )
+    clan.to_json    
+  end
+
+  post '/clans/:id/heroes' do
+    data  = parsed_body
+
+    if data.nil? || data['id'].nil?
+      halt 400
+    end
+
+    clan ||= Clan.get(params[:id]) || halt(404)
+    hero ||= Hero.get(data['id']) || halt(404)
+    if clan.heroes.length == 4
+      body "Clan #{clan.name} is not longer looking for heroes."
+      halt 500 
+    end
+    clan.heroes.push hero
+    halt 500 unless clan.save
+
+    status 201
+    clan.to_json
+  end
+
+  delete '/clans/:id' do
+    clan ||= Clan.get(params[:id]) || halt(404)
+    halt 404 if clan.nil?
+
+    if clan.heroes.any?
+      clan.heroes = []
+      clan.save
+    end
+
+    if clan.destroy
+      "The clan has been removed from the order."
+    else
+      halt 500
+    end
+
+  end
 
   # Index
   get '/heroes' do
@@ -133,7 +197,15 @@ end
       halt 400
     end
 
-    hero = Hero.new(name: data['name'], weapon_id: data['weapon_id'], job_id: data['job_id'], race_id: data['race_id'])
+    if !data['clan_id'].nil?
+      clan = Clan.get(data['clan_id'])
+      if (clan.heroes.length == 4 )
+        body "Clan #{clan.name} is not longer looking for heroes."
+        halt 500
+      end
+    end
+
+    hero = Hero.new(name: data['name'], weapon_id: data['weapon_id'], job_id: data['job_id'], race_id: data['race_id'], clan_id: data['clan_id'])
 
     halt 500 unless hero.save
     status 201
@@ -332,4 +404,5 @@ end
   end
 
 end
+
 
