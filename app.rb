@@ -38,7 +38,7 @@ configure :development, :test, :production do
     set :protection, origin_whitelist: ["chrome-extension://fdmmgilgnpjigdojojpjoooidkmcomcm", "http://127.0.0.1"]
 
     db_directory =  "#{File.expand_path(File.dirname(__FILE__))}/db"
-    Dir::mkdir(directory) unless File.exists?(db_directory)
+    Dir::mkdir(db_directory) unless File.exists?(db_directory)
     # Local SQlite Locally (Development):
     DataMapper.setup(:default, "sqlite://"+db_directory+"/db.sqlite3")
   end
